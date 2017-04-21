@@ -17,9 +17,11 @@ import random
 # Parameters:
 #   data ([7bits]): An array of arbitrary 7 bits
 def generateScore(data):
-    # Iterate over every byte
     melody = stream.Part()
+    melody.id = "melody"
     harmony = stream.Part()
+    harmony.id = "harmony"
+
     i = 0
     while i < len(data):
         # Get the melodic note
@@ -67,6 +69,7 @@ class DNA:
 
         self.random = data
         self.score = generateScore(data)
+        self.heuristic = heuristic
         self.fitness = 0 # ScoreAnalyzer.fitness(self.score, heuristic)
 
     # Description:
