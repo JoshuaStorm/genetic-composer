@@ -1,12 +1,12 @@
 ###############################################################################
 ##  Name:    Joshua Becker                                                   ##
 ##                                                                           ##
-##  Description: An abstraction of our genetic "DNA" for our scores.                        ##
+##  Description: An abstraction of our genetic "DNA" for our scores.         ##
 ###############################################################################
 
 from music21 import *
 import random
-
+import ScoreAnalyzer
 
 ###########################################################################
 #                              Utilities                                  #
@@ -27,6 +27,9 @@ def generateScore(data):
         # Get the melodic note
         midi = data[i]              # Any MIDI note
         quarter = data[i + 1] / 4.0 # Up to a maxima
+        # *************STANDIN***************
+        quarter = quarter / 16.0 # *************STANDIN***************
+        # *************STANDIN***************
         # TODO: Reconsider rest logic, this feels very arbitrary
         if data[i + 2] > 100:
             thisRest = note.Rest(quarterLength=quarter)
@@ -38,6 +41,9 @@ def generateScore(data):
         # TODO: Do more than just triads?
         midi = [data[i + 3], data[i + 4], data[i + 5]]
         quarter = data[i + 6] / 4.0
+        # *************STANDIN***************
+        quarter = quarter / 16.0 # *************STANDIN***************
+        # *************STANDIN***************
         # TODO: Reconsider rest logic, this feels very arbitrary
         if data[i + 7] > 100:
             thisRest = note.Rest(quarterLength=quarter)
@@ -45,7 +51,7 @@ def generateScore(data):
         else:
             thisChord = chord.Chord(midi, quarterLength=quarter)
             harmony.append(thisChord)
-        i = i + 8
+        i += 8
 
     score = stream.Stream([melody, harmony])
     return score
@@ -70,7 +76,9 @@ class DNA:
         self.random = data
         self.score = generateScore(data)
         self.heuristic = heuristic
-        self.fitness = 0 # ScoreAnalyzer.fitness(self.score, heuristic)
+        analyzer = ScoreAnalyzer.ScoreAnalyzer(self.score)
+        if   (heuristic == "good"):  self.fitness = analyzer.getGoodMusicAnalysis()
+        elif (heuristic == "delta"): self.fitness = analyzer.getDeltaAnalysis()
 
     # Description:
     #   Return this DNA's fitness, how "good" this DNA is. Darwin would be proud.
@@ -83,11 +91,11 @@ class DNA:
     # Parameters:
     #   partner (DNA): The other DNA to breed this DNA with
     def breed(self, partner):
-        # Use the random midpoint method,
-        # choose a random "midpoint" to pick the DNA from self and the rest from partner
         if len(self.random) != len(partner.random):
             raise ValueError("Attempted to breed DNA of differing lengths.")
 
+        # Use the random midpoint method,
+        # choose a random "midpoint" to pick the DNA from self and the rest from partner
         length = len(self.random)
         midpoint = random.randint(0, length)
         crossBred = []
@@ -100,17 +108,18 @@ class DNA:
         child = DNA(0)
         child.random = crossBred
         child.score = generateScore(crossBred)
-        child.fitness = 0 # ScoreAnalyzer.fitness(self.score, heuristic)
+        analyzer = ScoreAnalyzer.ScoreAnalyzer(child.score)
+        child.fitness = analyzer.getGoodMusicAnalysis()
         return child
 
     # Description:
     #   In order to ensure enough variation, allow subtle mutations
     # Parameters:
     #   rate (number): The probability by which this DNA will mutate
-    def mutate(rate):
+    def mutate(self, rate):
         for i in range(0, len(self.random)):
             if random.random() < rate:
-                self.random = random.randint(0, 127)
+                self.random[i] = random.randint(0, 127)
 
     # Description:
     #   Return this DNA as a score
