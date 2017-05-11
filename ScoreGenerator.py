@@ -6,6 +6,21 @@
 
 import Population
 
+# For runtime profiling
+import cProfile
+
+def do_cprofile(func):
+    def profiled_func(*args, **kwargs):
+        profile = cProfile.Profile()
+        try:
+            profile.enable()
+            result = func(*args, **kwargs)
+            profile.disable()
+            return result
+        finally:
+            profile.print_stats(sort='time')
+    return profiled_func
+
 class ScoreGenerator:
 
 
@@ -23,13 +38,14 @@ class ScoreGenerator:
     def __init__(self, size, length, corpus=None):
         self.history = []
         # TODO: Do I just want to hardcore the population size?
-        self.population = Population.Population(size, length, corpus)
+        self.population = Population.Population(size, length, 0.01, corpus)
         self.corpus = corpus
 
     # Description:
     #   Generate a score of at least the given threshold.
     # Parameters:
     #   threshold (number): The goal corpus
+    @do_cprofile
     def generate(self, threshold, deterministic=False):
         greatestChild = self.population.getGeneration(deterministic)
         while greatestChild.getFitness() < threshold:

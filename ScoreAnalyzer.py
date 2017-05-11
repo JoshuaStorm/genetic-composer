@@ -37,6 +37,15 @@ def analyzeMelodicMotion(melody):
         prevMidi = thisMidi
     return (100 - (totalDistance / totalNotes)) / 100.0
 
+
+# Map intervals to scores:
+#     unison/octave, augmented unison/minor 2nd, major 2nd, minor 3rd, major 3rd, perfect 4th, augmented 4th, perfect 5th, minor 6th, major 6th, minor 7th, major 7th
+#     These are relatively arbitrary, with preference toward consonance.
+INTERVAL_SCORES = [1, 0.25, 0.25, 0.75, 0.75, 0.5, 0.25, 1, 0.5, 0.5, 0.75, 0.75]
+
+
+# Improvement: analyz chord as a unit, consider voicing
+
 # Description:
 #   Give this harmony a 0.0-1.0 score based on its harmonic consonance.
 #   NOTE: Currently just returns a relative measure of prevalence of consonant intervals.
@@ -55,13 +64,8 @@ def analyzeHarmonicConsonance(harmony):
         note1 = chord[0][0]
         for note2 in chord[0]:
             if note1 is note2: continue
-            thisInterval = interval.notesToInterval(note.Note(note1), note.Note(note2)).simpleName
-            # Perfect consonances: 5th, 4th, unison/octave
-            if thisInterval[0] == "P":
-                cumulativeScore += 1
-            # Imperfect consonances: M6, m6, M3, m3
-            elif thisInterval[1] == "6" or thisInterval == "3":
-                cumulativeScore += 0.5
+            thisInterval = abs(note1 - note2) % 12
+            cumulativeScore += INTERVAL_SCORES[thisInterval]
             # If they're within the same octave
             if abs(note1 - note2) < 12:
                 cumulativeScore += 2

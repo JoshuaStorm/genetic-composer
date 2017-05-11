@@ -27,22 +27,26 @@ def generateScore(data):
         # Get the melodic note
         midi = data[i]                    # Any MIDI note
         quarter = (data[i + 1] + 1) / 4.0 # Up to a maxima
-        # *************STANDIN***************
-        quarter = quarter / 16.0 # *************STANDIN***************
-        # *************STANDIN***************
+        # TODO: *************STANDIN***************
+        quarter = 1
+        # END: *************STANDIN***************
         # TODO: Reconsider rest logic, this feels very arbitrary
         if data[i + 2] > 100:
             thisRest = note.Rest(quarterLength=quarter)
             melody.append(thisRest)
         else:
-            thisNote = note.Note(midi, quarterLength=quarter)
+            # STANDIN, forcing octave
+            thisNote = note.Note((midi % 12) + 48, quarterLength=quarter)
+            # END: *************STANDIN***************
             melody.append(thisNote)
 
         # TODO: Do more than just triads?
-        midi = [data[i + 3], data[i + 4], data[i + 5]]
+        # TODO: STANDIN, forcing octave
+        midi = [data[i + 3] % 12 + 48, data[i + 4] % 12 + 48, data[i + 5] % 12 + 48]
+        # END: *************STANDIN***************
         quarter = data[i + 6] / 4.0
         # *************STANDIN***************
-        quarter = quarter / 16.0 # *************STANDIN***************
+        quarter = 1 # *************STANDIN***************
         # *************STANDIN***************
         # TODO: Reconsider rest logic, this feels very arbitrary
         if data[i + 7] > 100:
@@ -165,6 +169,10 @@ class DNA:
     #   rate (number): The probability by which this DNA will mutate
     def mutate(self, rate):
         changed = False
+        # Intended to speed up generation, only iterate through mutation if an initial threshold is passed
+        if random.random() > (rate * 5):
+            return
+
         for i in range(0, len(self.data)):
             if random.random() < rate:
                 changed = True
