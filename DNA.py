@@ -25,8 +25,8 @@ def generateScore(data):
     i = 0
     while i < len(data):
         # Get the melodic note
-        midi = data[i]              # Any MIDI note
-        quarter = data[i + 1] / 4.0 # Up to a maxima
+        midi = data[i]                    # Any MIDI note
+        quarter = (data[i + 1] + 1) / 4.0 # Up to a maxima
         # *************STANDIN***************
         quarter = quarter / 16.0 # *************STANDIN***************
         # *************STANDIN***************
@@ -56,6 +56,49 @@ def generateScore(data):
     score = stream.Stream([melody, harmony])
     return score
 
+# Description:
+#   Helper function to generate a score from arbitrary data
+# Parameters:
+#   data ([7bits]): An array of arbitrary 7 bits
+# DataScore Format:
+#   { harmony: chordArray ; melody: noteArray }
+#   chordArray = [(midi, midi, midi, quarterLength)]
+#   noteArray = [(midi, quarterLength)]
+#   midi may be -1 to indicate a rest
+def generateDataScore(data):
+    melody = []
+    harmony = []
+
+    i = 0
+    while i < len(data):
+        # Get melody note
+        midi = data[i]
+        quarter = (data[i + 1] + 1) / 4.0
+        # *************STANDIN***************
+        quarter = quarter / 8.0 # *************STANDIN***************
+        # *************STANDIN***************
+        # TODO: Reconsider rest logic, this feels very arbitrary
+        if data[i + 2] > 100:
+            melody.append((-1, quarter))
+        else:
+            melody.append((midi, quarter))
+
+        # TODO: Do more than just triads?
+        midi = [data[i + 3], data[i + 4], data[i + 5]]
+        quarter = (data[i + 6] + 1) / 4.0
+        # *************STANDIN***************
+        quarter = quarter / 8.0 # *************STANDIN***************
+        # *************STANDIN***************
+        # TODO: Reconsider rest logic, this feels very arbitrary
+        if data[i + 7] > 100:
+            harmony.append((-1, quarter))
+        else:
+            harmony.append((midi, quarter))
+        i += 8
+    dataScore = {"melody": melody, "harmony": harmony}
+    return dataScore
+
+
 
 ###########################################################################
 #                              DNA Class                                  #
@@ -73,10 +116,13 @@ class DNA:
         for i in range(0, length * 8):
             data.append(random.randint(0, 127))
 
-        self.random = data
-        self.score = generateScore(data)
+        self.data = data
+        self.dataScore = generateDataScore(self.data) # An inbetween the arbitrary data stream and the Music21 score stream
+        self.score = None
         self.heuristic = heuristic
-        analyzer = ScoreAnalyzer.ScoreAnalyzer(self.score)
+
+        analyzer = ScoreAnalyzer.ScoreAnalyzer(self.dataScore)
+
         if   (heuristic == "good"):  self.fitness = analyzer.getGoodMusicAnalysis()
         elif (heuristic == "delta"): self.fitness = analyzer.getDeltaAnalysis()
 
@@ -91,24 +137,25 @@ class DNA:
     # Parameters:
     #   partner (DNA): The other DNA to breed this DNA with
     def breed(self, partner):
-        if len(self.random) != len(partner.random):
+        if len(self.data) != len(partner.data):
             raise ValueError("Attempted to breed DNA of differing lengths.")
 
         # Use the random midpoint method,
         # choose a random "midpoint" to pick the DNA from self and the rest from partner
-        length = len(self.random)
+        length = len(self.data)
         midpoint = random.randint(0, length)
         crossBred = []
         for i in range(0, length):
             if i < midpoint:
-                crossBred.append(self.random[i])
+                crossBred.append(self.data[i])
             else:
-                crossBred.append(partner.random[i])
+                crossBred.append(partner.data[i])
 
         child = DNA(0)
-        child.random = crossBred
-        child.score = generateScore(crossBred)
-        analyzer = ScoreAnalyzer.ScoreAnalyzer(child.score)
+        child.data = crossBred
+        child.dataScore = generateDataScore(child.data)
+        child.score = None
+        analyzer = ScoreAnalyzer.ScoreAnalyzer(child.dataScore)
         child.fitness = analyzer.getGoodMusicAnalysis()
         return child
 
@@ -117,11 +164,17 @@ class DNA:
     # Parameters:
     #   rate (number): The probability by which this DNA will mutate
     def mutate(self, rate):
-        for i in range(0, len(self.random)):
+        changed = False
+        for i in range(0, len(self.data)):
             if random.random() < rate:
-                self.random[i] = random.randint(0, 127)
+                changed = True
+                self.data[i] = random.randint(0, 127)
+        if changed:
+            self.dataScore = generateDataScore(self.data)
 
     # Description:
     #   Return this DNA as a score
     def getScore(self):
+        if self.score is None:
+            self.score = generateScore(self.data)
         return self.score

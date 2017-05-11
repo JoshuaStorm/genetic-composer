@@ -5,6 +5,9 @@
 ##               The Good Music Heuristic or the Score Delta Heuristic       ##
 ##               It should be noted, these are truly heuristics.             ##
 ##               These are note necessarily rigorous/objective analyses.     ##
+##               NOTE: Due to speed constraints, this ScoreAnalyzer analyzes ##
+##               a score as it appears as an arbitrary data stream, not a    ##
+##               Music21 score as one may suspect                            ##
 ###############################################################################
 
 from music21 import *
@@ -26,9 +29,9 @@ def analyzeMelodicMotion(melody):
     totalDistance = 0.0
     totalNotes = 0.1 # Set this to 0.1 to avoid incredibly improbable error due to division by zero TODO: More elegant fix?
     for note in melody:
-        if note.isRest: continue
+        if note[0] == -1: continue
         totalNotes += 1.0
-        thisMidi = note.pitch.midi
+        thisMidi = note[0]
         if prevMidi is not None:
             totalDistance += abs(thisMidi - prevMidi)
         prevMidi = thisMidi
@@ -47,12 +50,12 @@ def analyzeHarmonicConsonance(harmony):
     cumulativeScore = 0.0
     totalChords = 0.1 # Set this to 0.1 to avoid incredibly improbable error due to division by zero TODO: More elegant fix?
     for chord in harmony:
-        if chord.isRest: continue
+        if chord[0] == -1: continue
         totalChords += 1
-        note1 = chord[0]
-        for note2 in chord:
+        note1 = chord[0][0]
+        for note2 in chord[0]:
             if note1 is note2: continue
-            thisInterval = interval.notesToInterval(note1, note2).simpleName
+            thisInterval = interval.notesToInterval(note.Note(note1), note.Note(note2)).simpleName
             # Perfect consonances: 5th, 4th, unison/octave
             if thisInterval[0] == "P":
                 cumulativeScore += 1
@@ -60,9 +63,9 @@ def analyzeHarmonicConsonance(harmony):
             elif thisInterval[1] == "6" or thisInterval == "3":
                 cumulativeScore += 0.5
             # If they're within the same octave
-            if abs(note1.pitch.midi - note2.pitch.midi) < 12:
-                cumulativeScore += 1
-    return cumulativeScore / (4 * totalChords)
+            if abs(note1 - note2) < 12:
+                cumulativeScore += 2
+    return cumulativeScore / (6 * totalChords)
 
 # Description:
 #   Give this harmony a 0.0-1.0 score based on its harmonic consistency.
@@ -83,13 +86,13 @@ MACRO_SCORES = [0.0, 0.1, 0.15, 0.25, 0.5, 0.65, 0.8, 1.0, 0.8, 0.65, 0.5, 0.25,
 def analyzeMacroharmony(melody, harmony):
     notesUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     for note in melody:
-        if note.isRest: continue
-        index = note.pitch.midi % 12
+        if note[0] == -1: continue
+        index = note[0] % 12
         notesUsed[index] = 1
     for chord in harmony:
-        if chord.isRest: continue
-        for note in chord:
-            index = note.pitch.midi % 12
+        if chord[0] == -1: continue
+        for note in chord[0]:
+            index = note % 12
             notesUsed[index] = 1
 
     numberNotesUsed = 0
@@ -107,15 +110,15 @@ def analyzeCentricity(melody, harmony):
     notesUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     totalNotes = 0.1 # Set this to 0.1 to avoid incredibly improbable error due to division by zero TODO: More elegant fix?
     for note in melody:
-        if note.isRest: continue
-        index = note.pitch.midi % 12
+        if note[0] == -1: continue
+        index = note[0] % 12
         notesUsed[index] += 1.0
         totalNotes += 1.0
     # TODO: Base it off the chord, not the notes of the chord?
     for chord in harmony:
-        if chord.isRest: continue
-        for note in chord:
-            index = note.pitch.midi % 12
+        if chord[0] == -1: continue
+        for note in chord[0]:
+            index = note % 12
             notesUsed[index] += 1.0
             totalNotes += 1.0
     # Convert to relative frequencies
@@ -129,7 +132,7 @@ def analyzeCentricity(melody, harmony):
             secondFreq = freq
 
     # TODO: Something more intelligent. Currently just saying "more root == more better!"
-    return (maxFreq / secondFreq - 1)
+    return maxFreq / secondFreq - 1
 
 
 ###########################################################################
@@ -141,10 +144,10 @@ class ScoreAnalyzer:
     # Description:
     #   Create a score analyzer of the input score
     # Parameters:
-    #   score (music21 Score): The score to be analyzed. Assumed to have melody and harmony music21 Parts
-    def __init__(self, score):
-        self.melody = score.getElementById('melody')
-        self.harmony = score.getElementById('harmony')
+    #   score (dataScore, see DNA.py): The data to be analyzed. Assumed to have melody and harmony parts
+    def __init__(self, dataScore):
+        self.melody = dataScore["melody"]
+        self.harmony = dataScore["harmony"]
 
     # Description:
     #   Analyze the score with the Good Music Heuristic, return a 0.00-1.00 score

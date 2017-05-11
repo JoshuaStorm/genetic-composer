@@ -7,6 +7,7 @@
 
 import DNA
 import random
+import math
 
 class Population:
 
@@ -39,7 +40,45 @@ class Population:
 
     # Description:
     #   Breed the next generation, return the best child
-    def getGeneration(self):
+    # Parameters:
+    #   deterministic (boolean) - optional: Whether to use the deterministic or probabilistic selection method
+    #                                       Detereministic will require a larger population pool but may go faster.
+    def getGeneration(self, deterministic=False):
+        if deterministic:
+            return self.__getDeterministic()
+        else:
+            return self.__getProbabilistic()
+
+    def __getDeterministic(self):
+        self.populace = sorted(self.populace, key=lambda dna: dna.getFitness(), reverse=True)
+        newPopulace = []
+        fittestChild = None
+        newTotalFitness = 0
+        i = 0
+        while len(newPopulace) < self.size:
+            # Breed this person with up to sqrt(size) lesser beings
+            for j in range(0, int(math.sqrt(self.size - len(newPopulace)))):
+                if len(newPopulace) >= self.size: break
+                parent1 = self.populace[i]
+                parent2 = self.populace[i + j]
+                child = parent1.breed(parent2)
+                child.mutate(self.rate)
+
+                newTotalFitness += child.getFitness()
+                newPopulace.append(child)
+
+                if fittestChild is None:
+                    fittestChild = child
+                elif child.getFitness() > fittestChild.getFitness():
+                    fittestChild = child
+            i += 1
+
+        self.populace = newPopulace
+        self.__totalFitness = newTotalFitness
+        print "Fittest fitness: " + str(fittestChild.getFitness())
+        return fittestChild
+
+    def __getProbabilistic(self):
         probabilities = []
         # Produce relative probabilities
         for dna in self.populace:
@@ -87,3 +126,18 @@ class Population:
     #   Return the current group in the population
     def getPopulace(self):
         return self.populace
+
+# NOTE: Only exists for runtime analysis
+def main():
+    #  50, 20, 0.01 ->  0m37.947s real
+    #  50, 40, 0.01 ->  1m10.397s real
+    # 100, 20, 0.01 ->  1m10.164s real
+    # 100, 40, 0.01 ->  2m17.146s real
+    # 200, 20, 0.01 ->  2m20.199s real
+    # 200, 40, 0.01 ->  4m35.943s real
+    # 400, 80, 0.01 -> 18m53.981s real
+    pop = Population(300, 60, rate=0.01)
+    dna = pop.getGeneration()
+    dna.getScore().show()
+
+# main()
