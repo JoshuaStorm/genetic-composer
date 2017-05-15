@@ -11,6 +11,7 @@
 ###############################################################################
 
 from music21 import *
+import sys
 
 ###########################################################################
 #                              Utilities                                  #
@@ -39,9 +40,9 @@ def analyzeMelodicMotion(melody):
 
 
 # Map intervals to scores:
-#     unison/octave, augmented unison/minor 2nd, major 2nd, minor 3rd, major 3rd, perfect 4th, augmented 4th, perfect 5th, minor 6th, major 6th, minor 7th, major 7th
-#     These are relatively arbitrary, with preference toward consonance.
-INTERVAL_SCORES = [1, 0.25, 0.25, 0.75, 0.75, 0.5, 0.25, 1, 0.5, 0.5, 0.75, 0.75]
+#   unison/octave, augmented unison/minor 2nd, major 2nd, minor 3rd, major 3rd, perfect 4th, augmented 4th, perfect 5th, minor 6th, major 6th, minor 7th, major 7th
+#   These are relatively arbitrary, with preference toward consonance.
+INTERVAL_SCORES = [0.5, 0.25, 0.25, 1, 0.75, 0.5, 0.25, 1, 0.5, 0.5, 0.75, 0.75]
 
 
 # Improvement: analyz chord as a unit, consider voicing
@@ -73,11 +74,55 @@ def analyzeHarmonicConsonance(harmony):
 
 # Description:
 #   Give this harmony a 0.0-1.0 score based on its harmonic consistency.
+#   Currently just gives a better score for fewer structures
 # Parameters:
 #   harmony (music21 Part): The harmony to be analyzed
 # TODO: This entire function, even being hacky with it is harder than the other ones
 def analyzeHarmonicConsistency(harmony):
-    return 0.5
+    structures = [[0 for i in range(12)] for j in range(12)]
+
+    # Find the structures
+    for chord in harmony:
+        if chord[0] == -1: continue
+        interval1 = abs(chord[0][0] - chord[0][1]) % 12
+        interval2 = abs(chord[0][0] - chord[0][2]) % 12
+        structures[interval1][interval2] += 1.0
+
+    # Find the most common and least common structures
+    # Make the mosts 0.01 to avoid errors being thrown for extremely small scores
+    most = 0.01
+    secondMost = 0.01
+    thirdMost = 0.01
+    least = sys.maxint
+    secondLeast = sys.maxint
+    thirdLeast = sys.maxint
+
+    for structure in structures:
+        thisMax = max(structure)
+
+        if thisMax >= most:
+            thirdMost = secondMost
+            secondMost = most
+            most = thisMax
+        elif thisMax >= secondMost:
+            thirdMost = secondMost
+            secondMost = thisMax
+        elif thisMax >= thirdMost:
+            thirdMost = thisMax
+
+        thisMin = min(structure)
+        if thisMin <= least:
+            thirdLeast = secondLeast
+            secondLeast = least
+            least = thisMin
+        elif thisMin <= secondLeast:
+            thirdLeast = secondLeast
+            secondLeast = thisMin
+        elif thisMin <= thirdLeast:
+            thirdLeast = thisMin
+
+    # TODO: Play with this a bit. This is relatively arbitrary
+    return 1.0 - (least / most) - (secondMost / most)
 
 # Map the number of notes used to a score, somewhat arbitrary based solely on the
 # line in Dmitri's book "Tonal music tends to use relatively small macroharmonies, often involving five to eight notes."
@@ -139,6 +184,49 @@ def analyzeCentricity(melody, harmony):
     return maxFreq / secondFreq - 1
 
 
+
+COHESION_SCORES = [1, 0.25, 0.25, 0.75, 0.75, 0.5, 0.25, 1, 0.5, 0.5, 0.75, 1]
+
+# Description:
+#   Give this harmony a 0.0-1.0 score based on its cohesion. Ie. how well the harmony and melody go together
+# Parameters:
+#   melody (music21 Part): The melody to be analyzed
+#   harmony (music21 Part): The harmony to be analyzed
+# TODO: Actually based analyze of position in score, not just assuming nextChord occurs at same time as nextNote
+def analyzeCohesion(melody, harmony):
+    cumulativeScore = 0.0
+    totalIntervals = 0.1 # Set this to 0.1 to avoid incredibly improbable error due to division by zero TODO: More elegant fix?
+    quarterLength = 0
+
+    i = 0
+    j = 0
+    while i < len(melody) and j < len(harmony):
+        melodyNote = melody[i][0]
+        chordNotes = harmony[j][0]
+
+        # Rest
+        if chordNotes == -1:
+            i += 1
+            continue
+
+        for note in chordNotes:
+            interval = abs(melodyNote - note) % 12
+            cumulativeScore = INTERVAL_SCORES[interval]
+            totalIntervals += 1
+        i += 1
+        # If the melody has progressed beyond the chord, iterate chord
+        if quarterLength >= harmony[j][1]:
+            j += 1
+
+    return cumulativeScore / totalIntervals
+
+# Description:
+#   Give this harmony a 0.0-1.0 score based on its cohesion. Ie. how well the harmony and melody go together
+# Parameters:
+#   melody (music21 Part): The melody to be analyzed
+#   harmony (music21 Part): The harmony to be analyzed
+def analyzeRhythm(melody, harmony):
+
 ###########################################################################
 #                         Score Analyzer Class                            #
 ###########################################################################
@@ -163,7 +251,8 @@ class ScoreAnalyzer:
         consistency = analyzeHarmonicConsistency(self.harmony)
         macroharmony = analyzeMacroharmony(self.melody, self.harmony)
         centricity = analyzeCentricity(self.melody, self.harmony)
-        return (motion + consonance + consistency + macroharmony + centricity) / 5.0
+        cohesion = analyzeCohesion(self.melody, self.harmony)
+        return (motion + consonance + consistency + macroharmony + centricity + cohesion) / 6.0
 
     # Description:
     #   Analyze the score with the Score Delta Heuristic, return a 0.00-1.00 score

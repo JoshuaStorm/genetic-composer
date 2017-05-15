@@ -27,7 +27,6 @@ class ScoreGenerator:
     # Base the melody score on the its cohesion with the harmony
 
 
-
     # Description:
     #   Create a score generator. If a corpus is passed, use the for Score Delta heuristic.
     #   Otherwise, only use Good Music Heuristic.

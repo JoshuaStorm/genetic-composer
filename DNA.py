@@ -26,9 +26,9 @@ def generateScore(data):
     while i < len(data):
         # Get the melodic note
         midi = data[i]                    # Any MIDI note
-        quarter = (data[i + 1] + 1) / 4.0 # Up to a maxima
+        quarter = (data[i + 1] + 1) / 16.0 # Up to a maxima
         # TODO: *************STANDIN***************
-        quarter = 1
+        # quarter = 1
         # END: *************STANDIN***************
         # TODO: Reconsider rest logic, this feels very arbitrary
         if data[i + 2] > 100:
@@ -36,7 +36,7 @@ def generateScore(data):
             melody.append(thisRest)
         else:
             # STANDIN, forcing octave
-            thisNote = note.Note((midi % 12) + 48, quarterLength=quarter)
+            thisNote = note.Note((midi % 12) + 60, quarterLength=quarter)
             # END: *************STANDIN***************
             melody.append(thisNote)
 
@@ -44,9 +44,9 @@ def generateScore(data):
         # TODO: STANDIN, forcing octave
         midi = [data[i + 3] % 12 + 48, data[i + 4] % 12 + 48, data[i + 5] % 12 + 48]
         # END: *************STANDIN***************
-        quarter = data[i + 6] / 4.0
+        quarter = data[i + 6] / 16.0
         # *************STANDIN***************
-        quarter = 1 # *************STANDIN***************
+        # quarter = 4 # *************STANDIN***************
         # *************STANDIN***************
         # TODO: Reconsider rest logic, this feels very arbitrary
         if data[i + 7] > 100:
@@ -61,11 +61,12 @@ def generateScore(data):
     return score
 
 # Description:
-#   Helper function to generate a score from arbitrary data
+#   Helper function to generate a score from arbitrary data.
+#   Using this instead of Music21 to speedup generation (>x20 speedup)
 # Parameters:
 #   data ([7bits]): An array of arbitrary 7 bits
 # DataScore Format:
-#   { harmony: chordArray ; melody: noteArray }
+#   { harmony: [[chordNotes], quarterLength] ; melody: [note, quarterLength] }
 #   chordArray = [(midi, midi, midi, quarterLength)]
 #   noteArray = [(midi, quarterLength)]
 #   midi may be -1 to indicate a rest
