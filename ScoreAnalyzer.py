@@ -36,7 +36,7 @@ def analyzeMelodicMotion(melody):
         if prevMidi is not None:
             totalDistance += abs(thisMidi - prevMidi)
         prevMidi = thisMidi
-    return (100 - (totalDistance / totalNotes)) / 100.0
+    return 1 - (totalDistance / (127 * totalNotes))
 
 
 # Map intervals to scores:
@@ -126,7 +126,7 @@ def analyzeHarmonicConsistency(harmony):
 
 # Map the number of notes used to a score, somewhat arbitrary based solely on the
 # line in Dmitri's book "Tonal music tends to use relatively small macroharmonies, often involving five to eight notes."
-MACRO_SCORES = [0.0, 0.1, 0.15, 0.25, 0.5, 0.65, 0.8, 1.0, 0.8, 0.65, 0.5, 0.25, 0.15 ]
+MACRO_SCORES = [0.0, 0.1, 0.15, 0.25, 0.5, 0.65, 0.8, 1.0, 0.8, 0.65, 0.5, 0.25, 0.0 ]
 # Description:
 #   Give this harmony a 0.0-1.0 score based on its macroharmonic makeup
 # Parameters:
@@ -171,7 +171,7 @@ def analyzeCentricity(melody, harmony):
             notesUsed[index] += 1.0
             totalNotes += 1.0
     # Convert to relative frequencies
-    maxFreq = 0.0
+    maxFreq = 0.1
     secondFreq = 0.1 # Set this to 0.1 to avoid incredibly improbable error due to division by zero TODO: More elegant fix?
     for value in notesUsed:
         freq = value / totalNotes
@@ -181,7 +181,7 @@ def analyzeCentricity(melody, harmony):
             secondFreq = freq
 
     # TODO: Something more intelligent. Currently just saying "more root == more better!"
-    return maxFreq / secondFreq - 1
+    return 1 - (secondFreq / maxFreq)
 
 
 
@@ -206,12 +206,15 @@ def analyzeCohesion(melody, harmony):
 
         # Rest
         if chordNotes == -1:
+            j += 1
+            continue
+        if melodyNote == -1:
             i += 1
             continue
 
         for note in chordNotes:
             interval = abs(melodyNote - note) % 12
-            cumulativeScore = INTERVAL_SCORES[interval]
+            cumulativeScore += COHESION_SCORES[interval]
             totalIntervals += 1
         i += 1
         # If the melody has progressed beyond the chord, iterate chord
@@ -226,6 +229,7 @@ def analyzeCohesion(melody, harmony):
 #   melody (music21 Part): The melody to be analyzed
 #   harmony (music21 Part): The harmony to be analyzed
 def analyzeRhythm(melody, harmony):
+    return 0.5
 
 ###########################################################################
 #                         Score Analyzer Class                            #
@@ -252,7 +256,9 @@ class ScoreAnalyzer:
         macroharmony = analyzeMacroharmony(self.melody, self.harmony)
         centricity = analyzeCentricity(self.melody, self.harmony)
         cohesion = analyzeCohesion(self.melody, self.harmony)
-        return (motion + consonance + consistency + macroharmony + centricity + cohesion) / 6.0
+        cumulative = (motion + consonance + consistency + macroharmony + centricity + cohesion) / 6.0
+
+        return [cumulative, motion, consonance, consistency, macroharmony, centricity, cohesion]
 
     # Description:
     #   Analyze the score with the Score Delta Heuristic, return a 0.00-1.00 score

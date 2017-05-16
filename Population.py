@@ -75,7 +75,16 @@ class Population:
 
         self.populace = newPopulace
         self.__totalFitness = newTotalFitness
-        print "Fittest fitness: " + str(fittestChild.getFitness())
+        fitnessArray = fittestChild.getFitnessArray()
+        print "---------------------------------------------"
+        print "Fittest cumulative: " + str(fitnessArray[0])
+        print "    Motion:       " + str(fitnessArray[1])
+        print "    Consonance:   " + str(fitnessArray[2])
+        print "    Consistency:  " + str(fitnessArray[3])
+        print "    Macroharmony: " + str(fitnessArray[4])
+        print "    Centricity:   " + str(fitnessArray[5])
+        print "    Cohesion:     " + str(fitnessArray[6])
+
         return fittestChild
 
     def __getProbabilistic(self):
@@ -119,7 +128,15 @@ class Population:
 
         self.populace = newPopulace
         self.__totalFitness = newTotalFitness
-        print "Fittest fitness: " + str(fittestChild.getFitness())
+        fitnessArray = fittestChild.getFitnessArray()
+        print "---------------------------------------------"
+        print "Fittest cumulative: " + str(fitnessArray[0])
+        print "    Motion:       " + str(fitnessArray[1])
+        print "    Consonance:   " + str(fitnessArray[2])
+        print "    Consistency:  " + str(fitnessArray[3])
+        print "    Macroharmony: " + str(fitnessArray[4])
+        print "    Centricity:   " + str(fitnessArray[5])
+        print "    Cohesion:     " + str(fitnessArray[6])
         return fittestChild
 
     # Description:
