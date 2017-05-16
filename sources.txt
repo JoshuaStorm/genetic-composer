@@ -1,0 +1,5 @@
+The various sources I used for inspiration and/or techniques
+
+http://cgm.cs.mcgill.ca/~godfried/publications/Hawaii-Paper-Rhythm-Generation.pdf
+
+Dmitri's The Geometry of Music
