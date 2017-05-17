@@ -84,7 +84,8 @@ class Population:
         print "    Macroharmony: " + str(fitnessArray[4])
         print "    Centricity:   " + str(fitnessArray[5])
         print "    Cohesion:     " + str(fitnessArray[6])
-
+        print "    Note Length:  " + str(fitnessArray[7])
+        print "    Octave:       " + str(fitnessArray[8])
         return fittestChild
 
     def __getProbabilistic(self):
@@ -137,6 +138,8 @@ class Population:
         print "    Macroharmony: " + str(fitnessArray[4])
         print "    Centricity:   " + str(fitnessArray[5])
         print "    Cohesion:     " + str(fitnessArray[6])
+        print "    Note Length:  " + str(fitnessArray[7])
+        print "    Octave:       " + str(fitnessArray[8])
         return fittestChild
 
     # Description:

@@ -11,7 +11,9 @@
 ###############################################################################
 
 from music21 import *
+import numpy
 import sys
+
 
 ###########################################################################
 #                              Utilities                                  #
@@ -54,23 +56,20 @@ INTERVAL_SCORES = [0.5, 0.25, 0.25, 1, 0.75, 0.5, 0.25, 1, 0.5, 0.5, 0.75, 0.75]
 # Parameters:
 #   harmony (music21 Part): The harmony to be analyzed
 def analyzeHarmonicConsonance(harmony):
-    # Award 1 point for in same octave.
     # Award 1 point for perfect consonance
     # Award 0.5 point for imperfect consonance
     cumulativeScore = 0.0
-    totalChords = 0.1 # Set this to 0.1 to avoid incredibly improbable error due to division by zero TODO: More elegant fix?
+    totalIntervals = 0.1 # Set this to 0.1 to avoid incredibly improbable error due to division by zero TODO: More elegant fix?
     for chord in harmony:
         if chord[0] == -1: continue
-        totalChords += 1
         note1 = chord[0][0]
         for note2 in chord[0]:
             if note1 is note2: continue
+            totalIntervals += 1
             thisInterval = abs(note1 - note2) % 12
             cumulativeScore += INTERVAL_SCORES[thisInterval]
-            # If they're within the same octave
-            if abs(note1 - note2) < 12:
-                cumulativeScore += 2
-    return cumulativeScore / (6 * totalChords)
+
+    return cumulativeScore / totalIntervals
 
 # Description:
 #   Give this harmony a 0.0-1.0 score based on its harmonic consistency.
@@ -224,12 +223,81 @@ def analyzeCohesion(melody, harmony):
     return cumulativeScore / totalIntervals
 
 # Description:
-#   Give this harmony a 0.0-1.0 score based on its cohesion. Ie. how well the harmony and melody go together
+#   Give this harmony a 0.0-1.0 score based on the consistency of note length
 # Parameters:
 #   melody (music21 Part): The melody to be analyzed
 #   harmony (music21 Part): The harmony to be analyzed
-def analyzeRhythm(melody, harmony):
-    return 0.5
+def analyzeNoteLength(melody, harmony):
+    durations = {}
+    totalDurations = 0.01
+
+    for note in melody:
+        if note[1] not in durations:
+            durations[note[1]] = 1
+        else:
+            durations[note[1]] += 1
+        totalDurations += 1.0
+    for chord in harmony:
+        if chord[1] not in durations:
+            durations[chord[1]] = 1
+        else:
+            durations[chord[1]] += 1
+        totalDurations += 1.0
+
+    max = 0.0
+    secondMax = 0.0
+    for key in durations:
+        if durations[key] >= max:
+            secondMax = max
+            max = durations[key]
+        elif durations[key] > secondMax:
+            secondMax = durations[key]
+
+    return (max / totalDurations) + (secondMax / totalDurations)
+
+
+# Description:
+#   Give this harmony a 0.0-1.0 score based on its rhythmic motion.
+# Parameters:
+#   melody (music21 Part): The melody to be analyzed
+#   harmony (music21 Part): The harmony to be analyzed
+def analyzeOctave(melody, harmony):
+    octaveSums = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    totalNotes = 0.01
+    for note in melody:
+        if note == -1: continue
+        octave = note[0] / 12
+        octaveSums[octave] += 1
+        totalNotes += 1
+
+    mostCommonMelodyOctave = 0
+    for octave in octaveSums:
+        proportion = octave / totalNotes
+        if proportion > mostCommonMelodyOctave:
+            mostCommonMelodyOctave = proportion
+
+    octaveSums = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    totalNotes = 0.01
+    for chord in harmony:
+        if chord[0] == -1: continue
+        for note in chord[0]:
+            octave = note / 12
+            octaveSums[octave] += 1
+            totalNotes += 1
+
+    mostCommonHarmonyOctave = 0
+    for octave in octaveSums:
+        proportion = octave / totalNotes
+        if proportion > mostCommonHarmonyOctave:
+            mostCommonHarmonyOctave = proportion
+
+    return (mostCommonMelodyOctave + mostCommonHarmonyOctave) / 2.0
+
+
+
+
+
+
 
 ###########################################################################
 #                         Score Analyzer Class                            #
@@ -256,9 +324,11 @@ class ScoreAnalyzer:
         macroharmony = analyzeMacroharmony(self.melody, self.harmony)
         centricity = analyzeCentricity(self.melody, self.harmony)
         cohesion = analyzeCohesion(self.melody, self.harmony)
-        cumulative = (motion + consonance + consistency + macroharmony + centricity + cohesion) / 6.0
+        noteLength = analyzeNoteLength(self.melody, self.harmony)
+        octave = analyzeOctave(self.melody, self.harmony)
+        cumulative = (motion + consonance + consistency + macroharmony + centricity + cohesion + noteLength + octave) / 8.0
 
-        return [cumulative, motion, consonance, consistency, macroharmony, centricity, cohesion]
+        return [cumulative, motion, consonance, consistency, macroharmony, centricity, cohesion, noteLength, octave]
 
     # Description:
     #   Analyze the score with the Score Delta Heuristic, return a 0.00-1.00 score

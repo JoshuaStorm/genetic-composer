@@ -26,7 +26,7 @@ def generateScore(data):
     while i < len(data):
         # Get the melodic note
         midi = data[i]                    # Any MIDI note
-        quarter = (data[i + 1]) / 16.0 # Up to a maxima
+        quarter = (data[i + 1] % 16 + 1) / 4.0
         # TODO: *************STANDIN***************
         # quarter = 1
         # END: *************STANDIN***************
@@ -49,7 +49,7 @@ def generateScore(data):
 
 
         # END: *************STANDIN***************
-        quarter = data[i + 6] / 16.0
+        quarter = (data[i + 1] % 16 + 1) / 4.0
         # *************STANDIN***************
         # quarter = 1 # *************STANDIN***************
         # *************STANDIN***************
@@ -83,9 +83,9 @@ def generateDataScore(data):
     while i < len(data):
         # Get melody note
         midi = data[i]
-        quarter = (data[i + 1] + 1) / 4.0
+        quarter = (data[i + 1] % 16 + 1) / 4.0
         # *************STANDIN***************
-        quarter = quarter / 8.0 # *************STANDIN***************
+        # quarter = quarter / 8.0 # *************STANDIN***************
         # *************STANDIN***************
 
         # TODO: Reconsider rest logic, this feels very arbitrary
@@ -96,9 +96,9 @@ def generateDataScore(data):
 
         # TODO: Do more than just triads?
         midi = [data[i + 3], data[i + 4], data[i + 5]]
-        quarter = (data[i + 6] + 1) / 4.0
+        quarter = (data[i + 6] % 16 + 1) / 4.0
         # *************STANDIN***************
-        quarter = quarter / 8.0 # *************STANDIN***************
+        # quarter = quarter / 8.0 # *************STANDIN***************
         # *************STANDIN***************
 
         # TODO: Reconsider rest logic, this feels very arbitrary
