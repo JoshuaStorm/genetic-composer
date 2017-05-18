@@ -43,7 +43,7 @@ def generateScore(data):
 
         # TODO: Do more than just triads?
         # TODO: STANDIN, forcing octave
-        midi = [data[i + 3] % 12 + 48, data[i + 4] % 12 + 48, data[i + 5] % 12 + 48]
+        # midi = [data[i + 3] % 12 + 48, data[i + 4] % 12 + 48, data[i + 5] % 12 + 48]
 
         midi = [data[i + 3], data[i + 4], data[i + 5]]
 
@@ -83,26 +83,24 @@ def generateDataScore(data):
     while i < len(data):
         # Get melody note
         midi = data[i]
+        # midi = data[i] % 12 + 60
         quarter = (data[i + 1] % 16 + 1) / 4.0
-        # *************STANDIN***************
-        # quarter = quarter / 8.0 # *************STANDIN***************
-        # *************STANDIN***************
+        # quarter = 2
 
         # TODO: Reconsider rest logic, this feels very arbitrary
-        if data[i + 2] > 100:
+        if data[i + 2] > 115:
             melody.append((-1, quarter))
         else:
             melody.append((midi, quarter))
 
         # TODO: Do more than just triads?
         midi = [data[i + 3], data[i + 4], data[i + 5]]
+        # midi = [data[i + 3] % 12 + 48, data[i + 4] % 12 + 48, data[i + 5] % 12 + 48]
         quarter = (data[i + 6] % 16 + 1) / 4.0
-        # *************STANDIN***************
-        # quarter = quarter / 8.0 # *************STANDIN***************
-        # *************STANDIN***************
+        # quarter = 2
 
         # TODO: Reconsider rest logic, this feels very arbitrary
-        if data[i + 7] > 100:
+        if data[i + 7] > 115:
             harmony.append((-1, quarter))
         else:
             harmony.append((midi, quarter))
@@ -140,8 +138,19 @@ class DNA:
 
     # Description:
     #   Return this DNA's fitness, how "good" this DNA is. Darwin would be proud.
-    def getFitness(self):
-        return self.fitness[0]
+    # Parameters:
+    #   modifiers ([Number]): An array of numbers corresponding to which characteristics to emphasize.
+    #                         In the order of: Motion, consonance, consistency, macroharmony,
+    #                         centricity, cohesion, note length, octave, and common notes between chords.
+    def getFitness(self, modifiers):
+        i = 0
+        sum = 0.0
+        modSum = 0.0
+        while i < len(self.fitness):
+            sum += self.fitness[i] * modifiers[i]
+            modSum += modifiers[i]
+            i += 1
+        return (sum / modSum)
 
     def getFitnessArray(self):
         return self.fitness
@@ -159,6 +168,7 @@ class DNA:
         # choose a random "midpoint" to pick the DNA from self and the rest from partner
         length = len(self.data)
         midpoint = random.randint(0, length)
+        
         crossBred = []
         for i in range(0, length):
             if i < midpoint:

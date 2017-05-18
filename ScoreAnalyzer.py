@@ -23,7 +23,7 @@ import sys
 # TODO: Make these more sophisticated, right now just have boilerplate analyses
 
 # Description:
-#   Give this melody a 0.0-1.0 score based on its conjunct melodic motion.
+#   Give this melody a 0.0-1.0 score based on the average motion of the melody
 #   NOTE: Currently just measures average chromatic jump
 # Parameters:
 #   melody (music21 Part): The melody to be analyzed
@@ -38,7 +38,8 @@ def analyzeMelodicMotion(melody):
         if prevMidi is not None:
             totalDistance += abs(thisMidi - prevMidi)
         prevMidi = thisMidi
-    return 1 - (totalDistance / (127 * totalNotes))
+    # 58 is chosen to avoid negative values, in most cases
+    return 1 - (totalDistance / (58 * totalNotes))
 
 
 # Map intervals to scores:
@@ -79,49 +80,48 @@ def analyzeHarmonicConsonance(harmony):
 # TODO: This entire function, even being hacky with it is harder than the other ones
 def analyzeHarmonicConsistency(harmony):
     structures = [[0 for i in range(12)] for j in range(12)]
+    totalStructures = 0.01
 
     # Find the structures
     for chord in harmony:
         if chord[0] == -1: continue
         interval1 = abs(chord[0][0] - chord[0][1]) % 12
         interval2 = abs(chord[0][0] - chord[0][2]) % 12
-        structures[interval1][interval2] += 1.0
+        if interval1 > interval2:
+            structures[interval1][interval2] += 1.0
+        else:
+            structures[interval2][interval1] += 1.0
+        totalStructures += 1
 
-    # Find the most common and least common structures
-    # Make the mosts 0.01 to avoid errors being thrown for extremely small scores
-    most = 0.01
-    secondMost = 0.01
-    thirdMost = 0.01
-    least = sys.maxint
-    secondLeast = sys.maxint
-    thirdLeast = sys.maxint
+    # Find the most common structures
+    mostCommon = [0.0, 0.0, 0.0, 0.0, 0.0]
 
     for structure in structures:
         thisMax = max(structure)
 
-        if thisMax >= most:
-            thirdMost = secondMost
-            secondMost = most
-            most = thisMax
-        elif thisMax >= secondMost:
-            thirdMost = secondMost
-            secondMost = thisMax
-        elif thisMax >= thirdMost:
-            thirdMost = thisMax
+        if thisMax >= mostCommon[0]:
+            mostCommon[4] = mostCommon[3]
+            mostCommon[3] = mostCommon[2]
+            mostCommon[2] = mostCommon[1]
+            mostCommon[1] = mostCommon[0]
+            mostCommon[0] = thisMax
+        elif thisMax >= mostCommon[1]:
+            mostCommon[4] = mostCommon[3]
+            mostCommon[3] = mostCommon[2]
+            mostCommon[2] = mostCommon[1]
+            mostCommon[1] = thisMax
+        elif thisMax >= mostCommon[2]:
+            mostCommon[4] = mostCommon[3]
+            mostCommon[3] = mostCommon[2]
+            mostCommon[2] = thisMax
+        elif thisMax >= mostCommon[3]:
+            mostCommon[4] = mostCommon[3]
+            mostCommon[3] = thisMax
+        elif thisMax >= mostCommon[4]:
+            mostCommon[4] = thisMax
 
-        thisMin = min(structure)
-        if thisMin <= least:
-            thirdLeast = secondLeast
-            secondLeast = least
-            least = thisMin
-        elif thisMin <= secondLeast:
-            thirdLeast = secondLeast
-            secondLeast = thisMin
-        elif thisMin <= thirdLeast:
-            thirdLeast = thisMin
-
-    # TODO: Play with this a bit. This is relatively arbitrary
-    return 1.0 - (least / most) - (secondMost / most)
+    # Score better for up to the top three most common structures being more common
+    return (mostCommon[0] + mostCommon[1] + mostCommon[2]) / totalStructures
 
 # Map the number of notes used to a score, somewhat arbitrary based solely on the
 # line in Dmitri's book "Tonal music tends to use relatively small macroharmonies, often involving five to eight notes."
@@ -136,21 +136,41 @@ def analyzeMacroharmony(melody, harmony):
     for note in melody:
         if note[0] == -1: continue
         index = note[0] % 12
-        notesUsed[index] = 1
+        notesUsed[index] += 1
     for chord in harmony:
         if chord[0] == -1: continue
         for note in chord[0]:
             index = note % 12
-            notesUsed[index] = 1
+            notesUsed[index] += 1
+
+
+    avg = numpy.mean(notesUsed)
+    std = numpy.std(notesUsed)
+
+    # If a note is used fewer than two StdDevs below the mean, treat it like None
+    # Are used, but add a slight negative modifier
+    # NOTE: This is my attempt to make this score less discrete
+    twoStdDevs = avg - 2 * std
+    oneStdDev = avg - std
+    i = 0
+    mod = 1
+    while i < len(notesUsed):
+        if notesUsed[i] < twoStdDevs:
+            notesUsed[i] = 0
+            mod -= 0.05
+        elif notesUsed[i] < oneStdDev:
+            notesUsed[i] = 0
+            mod -= 0.10
+        i += 1
 
     numberNotesUsed = 0
     for value in notesUsed:
-        numberNotesUsed += value
+        if value > 0: numberNotesUsed += 1
 
-    return MACRO_SCORES[numberNotesUsed]
+    return MACRO_SCORES[numberNotesUsed] * mod
 
 # Description:
-#   Give this harmony a 0.0-1.0 score based on its centricity
+#   Give this melody and harmony a 0.0-1.0 score based on its centricity
 # Parameters:
 #   melody (music21 Part): The melody to be analyzed
 #   harmony (music21 Part): The harmony to be analyzed
@@ -257,7 +277,7 @@ def analyzeNoteLength(melody, harmony):
 
 
 # Description:
-#   Give this harmony a 0.0-1.0 score based on its rhythmic motion.
+#   Give this harmony a 0.0-1.0 score based on consistency of octave.
 # Parameters:
 #   melody (music21 Part): The melody to be analyzed
 #   harmony (music21 Part): The harmony to be analyzed
@@ -294,9 +314,40 @@ def analyzeOctave(melody, harmony):
     return (mostCommonMelodyOctave + mostCommonHarmonyOctave) / 2.0
 
 
+# Description:
+#   Give this harmony a 0.0-1.0 score based on common notes between chords.
+#   This will hopefully increase the conistency of chord progressions
+# Parameters:
+#   harmony (music21 Part): The harmony to be analyzed
+def analyzeCommonNotes(harmony):
+    totalChords = 0.01
+    score = 0
+    # Award points for notes being the same between two chords
+    i = 0
+    while (i + 1) < len(harmony):
+        chord1 = harmony[i]
+        chord2 = harmony[i + 1]
+        # Check for rests
+        if chord1[0] == -1 or chord2[0] == -1:
+            i += 1
+            continue
 
+        untuple1 = [chord1[0][0], chord1[0][1], chord1[0][2]]
+        untuple1.sort()
+        untuple2 = [chord2[0][0], chord2[0][1], chord2[0][2]]
+        untuple2.sort()
 
+        if (untuple1[0] % 12) == (untuple2[0] % 12):
+            score += 1
+        if (untuple1[1] % 12) == (untuple2[1] % 12):
+            score += 1
+        if (untuple1[2] % 12) == (untuple2[2] % 12):
+            score += 1
 
+        i += 1
+        totalChords += 1
+
+    return score / (totalChords * 3)
 
 
 ###########################################################################
@@ -326,9 +377,9 @@ class ScoreAnalyzer:
         cohesion = analyzeCohesion(self.melody, self.harmony)
         noteLength = analyzeNoteLength(self.melody, self.harmony)
         octave = analyzeOctave(self.melody, self.harmony)
-        cumulative = (motion + consonance + consistency + macroharmony + centricity + cohesion + noteLength + octave) / 8.0
+        commonNotes = analyzeCommonNotes(self.harmony)
 
-        return [cumulative, motion, consonance, consistency, macroharmony, centricity, cohesion, noteLength, octave]
+        return [motion, consonance, consistency, macroharmony, centricity, cohesion, noteLength, octave, commonNotes]
 
     # Description:
     #   Analyze the score with the Score Delta Heuristic, return a 0.00-1.00 score

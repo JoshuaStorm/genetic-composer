@@ -18,7 +18,7 @@ class Population:
     #   length (number): The length of each 'strand' of DNA
     #   rate (number): 0.0-1.0 rate at which a child mutates
     #   goal (Object/Score/Corpus/Collection/?): The goal item to base our fitness on
-    def __init__(self, size, length, rate=0.01, goal=None):
+    def __init__(self, size, length, rate=0.01, modifiers=[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0], goal=None):
         if size < 2:
             print "Size of population must be greater than 1"
             return
@@ -35,7 +35,7 @@ class Population:
 
         for i in range(0, size):
             newDNA = DNA.DNA(length)
-            self.__totalFitness += newDNA.getFitness()
+            self.__totalFitness += newDNA.getFitness(modifiers)
             self.populace.append(newDNA)
 
     # Description:
@@ -43,14 +43,17 @@ class Population:
     # Parameters:
     #   deterministic (boolean) - optional: Whether to use the deterministic or probabilistic selection method
     #                                       Detereministic will require a larger population pool but may go faster.
-    def getGeneration(self, deterministic=False):
+    #   modifiers ([Number]): An array of numbers corresponding to which characteristics to emphasize.
+    #                         In the order of: Motion, consonance, consistency, macroharmony,
+    #                         centricity, cohesion, note length, octave, and common notes between chords.
+    def getGeneration(self, modifiers, deterministic=False):
         if deterministic:
-            return self.__getDeterministic()
+            return self.__getDeterministic(modifiers)
         else:
-            return self.__getProbabilistic()
+            return self.__getProbabilistic(modifiers)
 
-    def __getDeterministic(self):
-        self.populace = sorted(self.populace, key=lambda dna: dna.getFitness(), reverse=True)
+    def __getDeterministic(self, modifiers):
+        self.populace = sorted(self.populace, key=lambda dna: dna.getFitness(modifiers), reverse=True)
         newPopulace = []
         fittestChild = None
         newTotalFitness = 0
@@ -64,12 +67,12 @@ class Population:
                 child = parent1.breed(parent2)
                 child.mutate(self.rate)
 
-                newTotalFitness += child.getFitness()
+                newTotalFitness += child.getFitness(modifiers)
                 newPopulace.append(child)
 
                 if fittestChild is None:
                     fittestChild = child
-                elif child.getFitness() > fittestChild.getFitness():
+                elif child.getFitness(modifiers) > fittestChild.getFitness(modifiers):
                     fittestChild = child
             i += 1
 
@@ -77,22 +80,24 @@ class Population:
         self.__totalFitness = newTotalFitness
         fitnessArray = fittestChild.getFitnessArray()
         print "---------------------------------------------"
-        print "Fittest cumulative: " + str(fitnessArray[0])
-        print "    Motion:       " + str(fitnessArray[1])
-        print "    Consonance:   " + str(fitnessArray[2])
-        print "    Consistency:  " + str(fitnessArray[3])
-        print "    Macroharmony: " + str(fitnessArray[4])
-        print "    Centricity:   " + str(fitnessArray[5])
-        print "    Cohesion:     " + str(fitnessArray[6])
-        print "    Note Length:  " + str(fitnessArray[7])
-        print "    Octave:       " + str(fitnessArray[8])
+        print "Cumulative: " + str(fittestChild.getFitness(modifiers))
+        print "    Motion:       " + str(fitnessArray[0])
+        print "    Consonance:   " + str(fitnessArray[1])
+        print "    Consistency:  " + str(fitnessArray[2])
+        print "    Macroharmony: " + str(fitnessArray[3])
+        print "    Centricity:   " + str(fitnessArray[4])
+        print "    Cohesion:     " + str(fitnessArray[5])
+        print "    Note Length:  " + str(fitnessArray[6])
+        print "    Octave:       " + str(fitnessArray[7])
+        print "    Common Notes: " + str(fitnessArray[8])
+
         return fittestChild
 
-    def __getProbabilistic(self):
+    def __getProbabilistic(self, modifiers):
         probabilities = []
         # Produce relative probabilities
         for dna in self.populace:
-            probabilities.append(dna.getFitness() / self.__totalFitness)
+            probabilities.append(dna.getFitness(modifiers) / self.__totalFitness)
 
         # Produce a new population via that whole spooky birds and bees stuff
         newPopulace = []
@@ -104,7 +109,7 @@ class Population:
             parent1 = None
             for index, value in enumerate(self.populace):
                 cumulativeProbability += probabilities[index]
-                if cumulativeProbability > rand:
+                if cumulativeProbability >= rand:
                     parent1 = self.populace[index]
                     break
 
@@ -113,33 +118,35 @@ class Population:
             parent2 = None
             for index, value in enumerate(self.populace):
                 cumulativeProbability += probabilities[index]
-                if cumulativeProbability > rand:
+                if cumulativeProbability >= rand:
                     parent2 = self.populace[index]
                     break
 
             child = parent1.breed(parent2)
             rand = random.random()
             child.mutate(self.rate)
-            newTotalFitness += child.getFitness()
+            newTotalFitness += child.getFitness(modifiers)
             newPopulace.append(child)
             if fittestChild is None:
                 fittestChild = child
-            elif child.getFitness() > fittestChild.getFitness():
+            elif child.getFitness(modifiers) > fittestChild.getFitness(modifiers):
                 fittestChild = child
 
         self.populace = newPopulace
         self.__totalFitness = newTotalFitness
         fitnessArray = fittestChild.getFitnessArray()
         print "---------------------------------------------"
-        print "Fittest cumulative: " + str(fitnessArray[0])
-        print "    Motion:       " + str(fitnessArray[1])
-        print "    Consonance:   " + str(fitnessArray[2])
-        print "    Consistency:  " + str(fitnessArray[3])
-        print "    Macroharmony: " + str(fitnessArray[4])
-        print "    Centricity:   " + str(fitnessArray[5])
-        print "    Cohesion:     " + str(fitnessArray[6])
-        print "    Note Length:  " + str(fitnessArray[7])
-        print "    Octave:       " + str(fitnessArray[8])
+        print "Cumulative: " + str(fittestChild.getFitness(modifiers))
+        print "    Motion:       " + str(fitnessArray[0])
+        print "    Consonance:   " + str(fitnessArray[1])
+        print "    Consistency:  " + str(fitnessArray[2])
+        print "    Macroharmony: " + str(fitnessArray[3])
+        print "    Centricity:   " + str(fitnessArray[4])
+        print "    Cohesion:     " + str(fitnessArray[5])
+        print "    Note Length:  " + str(fitnessArray[6])
+        print "    Octave:       " + str(fitnessArray[7])
+        print "    Common Notes: " + str(fitnessArray[8])
+
         return fittestChild
 
     # Description:
