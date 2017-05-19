@@ -153,18 +153,3 @@ class Population:
     #   Return the current group in the population
     def getPopulace(self):
         return self.populace
-
-# NOTE: Only exists for runtime analysis
-def main():
-    #  50, 20, 0.01 ->  0m37.947s real
-    #  50, 40, 0.01 ->  1m10.397s real
-    # 100, 20, 0.01 ->  1m10.164s real
-    # 100, 40, 0.01 ->  2m17.146s real
-    # 200, 20, 0.01 ->  2m20.199s real
-    # 200, 40, 0.01 ->  4m35.943s real
-    # 400, 80, 0.01 -> 18m53.981s real
-    pop = Population(300, 60, rate=0.01)
-    dna = pop.getGeneration()
-    dna.getScore().show()
-
-# main()
