@@ -38,7 +38,7 @@ def analyzeMelodicMotion(melody):
         if prevMidi is not None:
             totalDistance += abs(thisMidi - prevMidi)
         prevMidi = thisMidi
-    # 58 is chosen to avoid negative values, in most cases
+    # 58 is chosen to avoid negative values, in most cases.
     return 1 - (totalDistance / (58 * totalNotes))
 
 

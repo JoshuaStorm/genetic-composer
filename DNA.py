@@ -168,7 +168,7 @@ class DNA:
         # choose a random "midpoint" to pick the DNA from self and the rest from partner
         length = len(self.data)
         midpoint = random.randint(0, length)
-        
+
         crossBred = []
         for i in range(0, length):
             if i < midpoint:
