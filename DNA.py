@@ -119,8 +119,7 @@ class DNA:
     #   Create a random strand of DNA
     # Parameters:
     #   length (number): The length of this 'strand' of DNA in number of notes
-    #   heuristic (String): "good", "delta" or "both". Which heuristic to use, see ScoreAnalyzer.py
-    def __init__(self, length, heuristic="good"):
+    def __init__(self, length):
         data = []
         # Eight 7-bits are needed per note (melody+harmony notes)
         for i in range(0, length * 8):
@@ -129,12 +128,9 @@ class DNA:
         self.data = data
         self.dataScore = generateDataScore(self.data) # An inbetween the arbitrary data stream and the Music21 score stream
         self.score = None
-        self.heuristic = heuristic
 
         analyzer = ScoreAnalyzer.ScoreAnalyzer(self.dataScore)
-
-        if   (heuristic == "good"):  self.fitness = analyzer.getGoodMusicAnalysis()
-        elif (heuristic == "delta"): self.fitness = analyzer.getDeltaAnalysis()
+        self.fitness = analyzer.getAnalysisScore()
 
     # Description:
     #   Return this DNA's fitness, how "good" this DNA is. Darwin would be proud.
@@ -181,7 +177,7 @@ class DNA:
         child.dataScore = generateDataScore(child.data)
         child.score = None
         analyzer = ScoreAnalyzer.ScoreAnalyzer(child.dataScore)
-        child.fitness = analyzer.getGoodMusicAnalysis()
+        child.fitness = analyzer.getAnalysisScore()
         return child
 
     # Description:

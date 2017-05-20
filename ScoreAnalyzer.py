@@ -1,10 +1,7 @@
 ###############################################################################
 ##  Name:    Joshua Becker                                                   ##
 ##                                                                           ##
-##  Description: A score analyzer that uses one of two heuristics:           ##
-##               The Good Music Heuristic or the Score Delta Heuristic       ##
-##               It should be noted, these are truly heuristics.             ##
-##               These are note necessarily rigorous/objective analyses.     ##
+##  Description: A score analyzer as a genetic fitness function:             ##
 ##               NOTE: Due to speed constraints, this ScoreAnalyzer analyzes ##
 ##               a score as it appears as an arbitrary data stream, not a    ##
 ##               Music21 score as one may suspect                            ##
@@ -365,10 +362,11 @@ class ScoreAnalyzer:
         self.harmony = dataScore["harmony"]
 
     # Description:
-    #   Analyze the score with the Good Music Heuristic, return a 0.00-1.00 score
+    #   Analyze the score with the above heuristics, return an array of scores
     # Special thanks:
-    #   Special thanks to Dmitri Tymoczko's "Geometry of Music" for giving me inspiration for this heuristic
-    def getGoodMusicAnalysis(self):
+    #   Special thanks to Dmitri Tymoczko's "Geometry of Music" for giving me inspiration for this heuristic.
+    #   Apologies for my poor interpretation.
+    def getAnalysis(self):
         motion = analyzeMelodicMotion(self.melody)
         consonance = analyzeHarmonicConsonance(self.harmony)
         consistency = analyzeHarmonicConsistency(self.harmony)
@@ -380,10 +378,3 @@ class ScoreAnalyzer:
         commonNotes = analyzeCommonNotes(self.harmony)
 
         return [motion, consonance, consistency, macroharmony, centricity, cohesion, noteLength, octave, commonNotes]
-
-    # Description:
-    #   Analyze the score with the Score Delta Heuristic, return a 0.00-1.00 score
-    # Parameters:
-    #   corpus ([music21 Score]): Collection of scores to compare for analysis
-    def getDeltaAnalysis(self, corpus):
-        pass
