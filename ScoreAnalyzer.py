@@ -365,7 +365,7 @@ class ScoreAnalyzer:
     # Special thanks:
     #   Special thanks to Dmitri Tymoczko's "Geometry of Music" for giving me inspiration for this heuristic.
     #   Apologies for my poor interpretation.
-    def getAnalysis(self):
+    def getAnalysisScore(self):
         motion = analyzeMelodicMotion(self.melody)
         consonance = analyzeHarmonicConsonance(self.harmony)
         consistency = analyzeHarmonicConsistency(self.harmony)

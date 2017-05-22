@@ -39,14 +39,13 @@ class ScoreGenerator:
             return
 
         self.history = []
-        self.population = Population.Population(size, length, rate, modifiers, corpus)
-        self.corpus = corpus
+        self.population = Population.Population(size, length, rate, modifiers)
         self.modifiers = modifiers
 
     # Description:
     #   Generate a score of at least the given threshold.
     # Parameters:
-    #   threshold (number): The goal corpus
+    #   threshold (number): The goal value. Between 0.0 and 1.0
     #   deterministic (boolean): Whether or not to use the Detereministic or probabilistic generation methods.
     #                            Generally, determistic is faster but more likely to plateau.
     # @do_cprofile

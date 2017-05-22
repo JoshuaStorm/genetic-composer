@@ -17,8 +17,7 @@ class Population:
     #   size (number): The number of 'strands' of DNA in this populace
     #   length (number): The length of each 'strand' of DNA
     #   rate (number): 0.0-1.0 rate at which a child mutates
-    #   goal (Object/Score/Corpus/Collection/?): The goal item to base our fitness on
-    def __init__(self, size, length, rate=0.01, modifiers=[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0], goal=None):
+    def __init__(self, size, length, rate=0.01, modifiers=[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]):
         if size < 2:
             print "Size of population must be greater than 1"
             return
@@ -29,7 +28,6 @@ class Population:
         self.size = size
         self.length = length
         self.rate = rate
-        self.goal = goal
         self.populace = []
         self.__totalFitness = 0 # The total fitness score of the population, for producing relative probabilities
 
