@@ -74,7 +74,6 @@ def analyzeHarmonicConsonance(harmony):
 #   Currently just gives a better score for fewer structures
 # Parameters:
 #   harmony (music21 Part): The harmony to be analyzed
-# TODO: This entire function, even being hacky with it is harder than the other ones
 def analyzeHarmonicConsistency(harmony):
     structures = [[0 for i in range(12)] for j in range(12)]
     totalStructures = 0.01

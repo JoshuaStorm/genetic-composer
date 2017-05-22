@@ -21,11 +21,8 @@ def do_cprofile(func):
             profile.print_stats(sort='time')
     return profiled_func
 
+
 class ScoreGenerator:
-
-
-    # Base the melody score on the its cohesion with the harmony
-
 
     # Description:
     #   Create a genetic score generator.
@@ -42,7 +39,6 @@ class ScoreGenerator:
             return
 
         self.history = []
-        # TODO: Do I just want to hardcore the population size?
         self.population = Population.Population(size, length, rate, modifiers, corpus)
         self.corpus = corpus
         self.modifiers = modifiers
